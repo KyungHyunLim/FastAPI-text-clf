@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "fastapi-text-clf"
+version = "0.1.0"
+description = ""
+authors = ["KyungHyunLim <lkh1075@yonsei.ac.kr>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+fastapi = "^0.70.0"
+transformers = "^4.12.5"
+uvicorn = "^0.16.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
