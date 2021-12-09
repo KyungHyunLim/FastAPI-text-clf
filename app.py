@@ -20,6 +20,7 @@ tokenizer = None
 class Comments(BaseModel):
     text: str = Field(default=str)
     label: str = Field(default=str)
+    confidence: float = Field(default=float)
 
 @app.on_event("startup")
 def init():
@@ -40,13 +41,14 @@ async def make_inference(text: str,
                      ):
  
     try:
-        inference_result = predict_from_text(model=model, tokenizer=tokenizer, text=text)
+        inference_result, confidence = predict_from_text(model=model, tokenizer=tokenizer, text=text)
     except:
         raise HTTPException(status_code=404, detail=f"예측과정에서 오류가 발생했습니다. [text: {text}]")
 
     new_conmments = Comments()
     new_conmments.text = text
     new_conmments.label = inference_result
+    new_conmments.confidence = confidence
     predicts.append(new_conmments)
 
     return new_conmments

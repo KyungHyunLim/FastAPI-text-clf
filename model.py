@@ -39,5 +39,6 @@ def predict_from_text(
     )
     pred = model(input_ids = inputs['input_ids'].to(device))
     classes = torch.argmax(pred['logits'].detach()).detach().item()
-    return class_dict[classes]
+    confidence = torch.max(pred['logits'].detach()).detach().item()
+    return class_dict[classes], confidence
     
