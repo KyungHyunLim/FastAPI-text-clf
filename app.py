@@ -15,6 +15,7 @@ app = FastAPI()
 
 predicts = []
 model = None
+tokenizer = None
 
 class Comments(BaseModel):
     text: str = Field(default=str)
@@ -22,9 +23,11 @@ class Comments(BaseModel):
 
 @app.on_event("startup")
 def init():
-    global model
+    global model, tokenizer
     if model is None:
         model = get_model()
+    if tokenizer is None:
+        tokenizer = get_tokenizer()
 
 @app.get("/")
 def hello_world():
@@ -33,7 +36,8 @@ def hello_world():
 @app.post("/inference", description="댓글의 악성 여부를 판단합니다.")
 async def make_inference(text: str,
                      #model: AutoModelForSequenceClassification = Depends(get_model),
-                     tokenizer: AutoTokenizer = Depends(get_tokenizer)):
+                     #tokenizer: AutoTokenizer = Depends(get_tokenizer)
+                     ):
  
     try:
         inference_result = predict_from_text(model=model, tokenizer=tokenizer, text=text)
