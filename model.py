@@ -8,6 +8,7 @@ class_dict = {
     2: 'Attack',
 }
 
+
 def get_model(model_name:str='beomi/KcELECTRA-base')->AutoModelForSequenceClassification:
     '''모델 가져오기'''
 
@@ -27,6 +28,7 @@ def predict_from_text(
     text: str)->str:
     '''text를 받아 악성 댓글 여부를 판단하여 반환'''
     
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     inputs = tokenizer(
         text,
         return_tensors="pt",
@@ -35,7 +37,7 @@ def predict_from_text(
         max_length=50,
         add_special_tokens=True,
     )
-    pred = model(**inputs)
-    classes = torch.argmax(pred['logits'].detach())
+    pred = model(input_ids = inputs['input_ids'].to(device))
+    classes = torch.argmax(pred['logits'].detach()).detach().item()
     return class_dict[classes]
     

@@ -1,84 +1,55 @@
 from typing import Optional, List
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi.param_functions import Depends
+from pydantic.main import BaseModel
+
+from typing import *
+from model import get_model, get_tokenizer, predict_from_text
+
+from pydantic import Field
+
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 app = FastAPI()
 
-class Model(BaseModel):
-    id: int
-    name: str
-    version: str
-    description: Optional[str]
-    tags: List[str]
-    artifact_url: str
+predicts = []
+model = None
 
-models: List[Model] = []
+class Comments(BaseModel):
+    text: str = Field(default=str)
+    label: str = Field(default=str)
 
-class CreateModelIn(BaseModel):
-    name: str
-    version: str
-    description: Optional[str]
-    tags: List[str]
-    artifact_url: str
+@app.on_event("startup")
+def init():
+    global model
+    if model is None:
+        model = get_model()
 
-class CreateModelOut(BaseModel):
-    id: int
+@app.get("/")
+def hello_world():
+    return {"악성 댓글": "분류해보자!"}
 
-class UpdateModelIn(BaseModel):
-    version: str
-    description: Optional[str]
-    tags: List[str]
-    artifact_url: str
+@app.post("/inference", description="댓글의 악성 여부를 판단합니다.")
+async def make_inference(text: str,
+                     #model: AutoModelForSequenceClassification = Depends(get_model),
+                     tokenizer: AutoTokenizer = Depends(get_tokenizer)):
+ 
+    try:
+        inference_result = predict_from_text(model=model, tokenizer=tokenizer, text=text)
+    except:
+        raise HTTPException(status_code=404, detail=f"예측과정에서 오류가 발생했습니다. [text: {text}]")
 
-class UpdateModelOut(BaseModel):
-    version: str
-    description: Optional[str]
-    tags: List[str]
-    artifact_url: str
+    new_conmments = Comments()
+    new_conmments.text = text
+    new_conmments.label = inference_result
+    predicts.append(new_conmments)
 
-@app.get("/models")
-def get_models():
-    # model 리스트를 리턴합니다
-    return models
+    return new_conmments
 
-@app.get("/model/{model_id}")
-def get_model(model_id: int):
-    # model 리스트로 부터 model_id가 일치하는 model을 가져와 리턴합니다
-    for model in models:
-        if model.id == model_id:
-            return model
-    # model_id가 없을 때 404 에러와 에러 메시지를 출력합니다
-    raise HTTPException(status_code=404, detail=f"모델을 찾을 수 없습니다 [id: {model_id}]")
-
-@app.get("/model")
-def get_model_by_name(model_name: str):
-    # model 리스트로 부터 model_name이 일치하는 model을 가져와 리턴합니다
-    for model in models:
-        if model.name == model_name:
-            return model
-    raise HTTPException(status_code=404, detail=f"모델을 찾을 수 없습니다 [name: {model_name}]")
-
-@app.post("/model", response_model=CreateModelOut)
-def create_model(new_model: CreateModelIn):
-    # model을 새로 만들고 model 리스트에 저장합니다
-    models.append(new_model)
-    return new_model
-
-@app.patch("/model/{model_id}", response_model=UpdateModelOut)
-def update_model(model_id: int, update_data: UpdateModelIn):
-    # 매칭되는 model_id를 가지고 있는 모델을 업데이트합니다
-    for model in models:
-        if model.id == model_id:
-            model = update_data
-            return model
-    # 매칭 되는 id를 가진 모델이 없을 때 404 에러와 메시지를 출력합니다.
-    raise HTTPException(status_code=404, detail=f"모델을 찾을 수 없습니다 [id: {model_id}]")
-
-@app.delete("/model/{model_id}")  # TODO: status code를 204로 바꿔보기
-def delete_model(model_id: int):
-    # TODO: 매칭되는 model_id를 가지고 있는 모델을 model 리스트로 부터 삭제합니다
-    pass
+@app.get("/results", description="댓글 판별 리스트를 가져옵니다")
+async def get_Comments() -> List[Comments]:
+    return predicts
 
 if __name__ == '__main__':
     import uvicorn
