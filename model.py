@@ -8,7 +8,6 @@ class_dict = {
     2: 'Attack',
 }
 
-
 def get_model(model_name:str='beomi/KcELECTRA-base')->AutoModelForSequenceClassification:
     '''모델 가져오기'''
 
